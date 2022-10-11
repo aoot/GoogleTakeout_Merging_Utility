@@ -3,52 +3,51 @@
 import os
 import shutil
 from pathlib import Path, PurePath
-from weakref import getweakrefcount
 from datetime import datetime
 
-### Notes: ###
-## NOTE: If a component is an absolute path, all previous components are discarded.
+## Path to the Google Takeout directory
+## The directory needs to be a relative path, relative to home, without the first forward slash.
+## Else, the first forward slash will be considered filesystem root.
+# path_rel_to_home = Path(input("Relative path of Google Takeout directories (without first forward slash): "))
+gTakeout_path_rel_to_home = Path("Downloads/Zotero Takeout")  # Debug use, override the input prompt
 
-path_rel_to_home = Path("Downloads/Zotero Takeout")
-gTakeout_dir_name = path_rel_to_home.parts[-1]
+## gTakeout Directory name (for naming the output folder)
+gTakeout_dir_name = gTakeout_path_rel_to_home.parts[-1]
 
-gTakeout_src_path = Path.home().joinpath(path_rel_to_home)
-gTakeout_dirs = [directory for directory in gTakeout_src_path.iterdir()]
+## Create a full path
+gTakeout_src_path = Path.home().joinpath(gTakeout_path_rel_to_home)  # Can also use the resolve() method
+## List of Google Takeout split directories
+gTakeout_dirs = [directory for directory in gTakeout_src_path.iterdir()]  # Relative to gTakeout_src_path
+
+## Set variables for naming
 year, month, day = datetime.now().year, datetime.now().month, datetime.now().day
 hour, minute, second = datetime.now().hour, datetime.now().minute, datetime.now().second
+## Output directory path
 dest_path = gTakeout_src_path.parent.joinpath(f"OUTPUT_{gTakeout_dir_name}_{year}{month}{day}_{hour}{minute}{second}")
 
-
+## Merging Logic
 for directory in gTakeout_dirs:
-    print("\n\n\n #################################")
-    print(directory)
-    temp_len = len(directory.parts)
-    print(len(directory.parts))
+    split_dir_abs_path_len = len(directory.parts)  # Number of absolute path parts
+    
+    ## Directory walk
     for root, dirs, filenames in os.walk(directory):
-        root = "/".join(Path(root).parts[temp_len: ])
-        temp_dest_path = dest_path.joinpath(root)
-        temp_src_path = Path(directory).joinpath(root)
-        # print(temp_dest_path)
-        
-        
-        print("\n\n\n #################################")
-        print(root)
+        # print(f"pre-change root: {root}")  # Debug use
+        ## pre-change root is absolute path
+        ## post-change root is relative to each Google Takeout split directory 
+        root = "/".join(Path(root).parts[split_dir_abs_path_len: ])
+        # print(f"post-change root {root}")  # Debug use
+    
+        temp_dest_path = dest_path.joinpath(root)  # New structure into the destination folder
+        temp_src_path = Path(directory).joinpath(root)  # Need the source path for copying
+    
+        ## Iterate and copy each file
         for filename in filenames: 
-            # print(temp_dest_path.joinpath(filename))
-            # print(temp_src_path.joinpath(filename))
-            os.makedirs(temp_dest_path, exist_ok=True)
-            shutil.copy(temp_src_path.joinpath(filename), temp_dest_path.joinpath(filename))
+            # print(temp_dest_path.joinpath(filename))  # Debug use
+            # print(temp_src_path.joinpath(filename))  # Debug use
+            os.makedirs(temp_dest_path, exist_ok=True)  # Create the dir hierarchy if doesn't exist
+            shutil.copy(temp_src_path.joinpath(filename), temp_dest_path.joinpath(filename))  # Copy to output folder
         
 
-
-
-
-
-
-# for root, dirs, files in os.walk(gTakeout_src_path, topdown=True):
-#     print("### " + root)
-#     for file in files: 
-#         print(file)
 
 
 '''
